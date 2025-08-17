@@ -1,3 +1,7 @@
+<img src="img/screenshot1.png" alt="App Screenshot" width="500"/>
+<img src="img/screenshot2.png" alt="App Screenshot" width="500"/>
+
+
 1. You must set your OpenAI API key before running the app.
 
 Option A: Hardcode in app.py
@@ -43,4 +47,5 @@ http://localhost:5000
 
 
 You'll be able to upload a PDF and chat with its contents.
+
 
