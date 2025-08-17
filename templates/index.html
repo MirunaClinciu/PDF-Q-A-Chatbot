@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PDF Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 2rem; }
+    .chat-container { background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 700px; display: flex; flex-direction: column; overflow: hidden; max-height: 90vh; }
+    .chat-header { background-color: #cf0072; color: white; padding: 1rem; text-align: center; font-size: 1.25rem; font-weight: 600; }
+    .upload-section { padding: 1rem; border-bottom: 1px solid #e2e8f0; background-color: #f9fafb; }
+    .chat-messages { flex-grow: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; scroll-behavior: smooth; }
+    .message { max-width: 80%; padding: 0.75rem 1rem; border-radius: 15px; word-wrap: break-word; }
+    .message.user { align-self: flex-end; background-color: #e0f2fe; color: #1a202c; border-bottom-right-radius: 5px; }
+    .message.ai { align-self: flex-start; background-color: #f3f4f6; color: #2d3748; border-bottom-left-radius: 5px; }
+    .chat-input-area { display: flex; padding: 1rem; border-top: 1px solid #e2e8f0; background-color: #ffffff; }
+    .chat-input { flex-grow: 1; padding: 0.75rem 1rem; border: 1px solid #cbd5e0; border-radius: 25px; outline: none; font-size: 1rem; }
+    .chat-input:focus { border-color: #000000; }
+    .send-button { background-color: #cf0072; color: white; border: none; border-radius: 25px; padding: 0.75rem 1.25rem; margin-left: 0.75rem; cursor: pointer; font-size: 1rem; font-weight: 600; }
+    .loading-indicator { text-align: center; padding: 1rem; font-style: italic; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Mini Blinkist</div>
+
+    <div class="upload-section">
+      <form id="pdf-form" enctype="multipart/form-data">
+        <label class="block mb-2 font-medium text-gray-700">Upload PDF:</label>
+        <input type="file" id="pdf-file" name="file" accept=".pdf,application/pdf" class="mb-3" />
+        <button type="submit" class="send-button" id="upload-btn">Upload PDF</button>
+        <p id="upload-status" class="text-sm mt-2 text-gray-600 italic"></p>
+      </form>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <div class="message ai">Hello! Upload a PDF and ask questions about it.</div>
+    </div>
+
+    <div class="chat-input-area">
+      <input type="text" id="user-input" class="chat-input" placeholder="Type your message...">
+      <button id="send-button" class="send-button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatMessages = document.getElementById("chat-messages");
+    const userInput = document.getElementById("user-input");
+    const sendButton = document.getElementById("send-button");
+    const pdfForm = document.getElementById("pdf-form");
+    const uploadStatus = document.getElementById("upload-status");
+    const uploadBtn = document.getElementById("upload-btn");
+
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.className = `message ${sender}`;
+      msg.textContent = text;
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    sendButton.addEventListener("click", async () => {
+      const msg = userInput.value.trim();
+      if (!msg) return;
+      addMessage(msg, "user");
+      userInput.value = "";
+
+      const loading = document.createElement("div");
+      loading.className = "loading-indicator";
+      loading.textContent = "AI is thinking...";
+      chatMessages.appendChild(loading);
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg })
+        });
+        const data = await res.json();
+        loading.remove();
+        if (data.ok) {
+          addMessage(`${data.answer}\n\nSources: ${data.sources}`, "ai");
+        } else {
+          addMessage(`Error: ${data.error}`, "ai");
+        }
+      } catch (err) {
+        loading.remove();
+        addMessage("Network error while contacting the server.", "ai");
+      }
+    });
+
+    pdfForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById("pdf-file");
+      const file = fileInput.files[0];
+      if (!file) return uploadStatus.textContent = "Please choose a PDF.";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      uploadBtn.disabled = true;
+      uploadStatus.textContent = "Uploading...";
+
+      try {
+        const res = await fetch("/upload", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        if (data.ok) {
+          uploadStatus.textContent = `Uploaded! ${data.pages_indexed} pages indexed.`;
+          addMessage("PDF uploaded. Ask your questions!", "ai");
+        } else {
+          uploadStatus.textContent = "Upload failed: " + data.error;
+        }
+      } catch (err) {
+        uploadStatus.textContent = "Upload failed: network error.";
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    userInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") sendButton.click();
+    });
+  </script>
+</body>
+</html>
