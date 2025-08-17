@@ -1,0 +1,11 @@
+flask
+flask-cors
+torch
+PyPDF2
+sentence-transformers
+langchain
+langchain-community
+langchain-huggingface
+langchain-openai
+gunicorn
+faiss-cpu
