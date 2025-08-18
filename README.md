@@ -65,7 +65,7 @@ This project implements a <strong>PDF chatbot</strong> that allows users to uplo
   <li><strong>Web Interface</strong> A Flask + Docker setup provides a simple frontend where users can upload PDFs and chat with them.</li>
 </ul>
 
-<h2>⚖Trade-offs and Shortcuts</h2>
+<h2>Trade-offs and Shortcuts</h2>
 
 <p>Due to time and complexity constraints, the following trade-offs and shortcuts were made:</p>
 
@@ -94,3 +94,4 @@ This project makes use of several open-source tools and APIs:
   <li><strong>Flask</strong>  for the lightweight web server and API endpoints.</li>
   <li><strong>Docker</strong>  for containerization and deployment.</li>
 </ul>
+
