@@ -78,6 +78,54 @@ This project implements a <strong>PDF chatbot</strong> that allows users to uplo
   <li><strong>Single Model Support</strong> Currently configured for OpenAI <code>gpt-3.5-turbo</code>; support for other providers/models could be added with minor changes.</li>
 </ul>
 
+<h2>How to improve security of this little app!</h2>
+
+## 1. Configuration API
+- The `OPENAI_API_KEY` is hardcoded in code.
+- Running Flask with `debug=True` exposes stack traces.
+### Fix
+Load secrets from environment variables, and disable debug mode in production.
+### Why
+- Prevents leaks of sensitive keys via version control.
+- Fail-fast ensures misconfiguration doesn’t go unnoticed.
+- Removing debug=True stops sensitive error pages from being shown to end-users.
+
+## 2. CORS
+CORS (Cross-Origin Resource Sharing). browsers block web pages from making AJAX calls to a different origin (domain/protocol/port) by default (Same-Origin Policy).
+- CORS is an “opt-in” in this code.
+### Fix => Recommended CORS Configuration (Flask)
+- Allow **only** trusted origins (production + dev).
+- Deny credentials by default; enable only if you truly need cookies/Authorization headers from browsers.
+- Keep **preflight** (OPTIONS) working.
+
+## 3. Multi-tenancy isolation (data leak)
+ Main problem is that the global vector_store shared by everyone; one user’s PDF answers another user’s query.
+
+Fix: per-session store; require session_id. 
+Why: prevents cross-user data exposure; foundation for auth later (JWT/API key).
+
+
+## 4. LLM prompt-injection hardening
+
+Problem: documents can contain “ignore previous instructions…” etc.
+Fix: tighten the system prompt; discourage tool/secret leakage.
+
+## 5. Dependency 
+
+Problems: unused torch; unpinned requirements.
+
+Fix: 
+- Remove unused imports (e.g., torch).
+- Pin versions and scan with pip-audit/safety.
+- Avoid strict=False in PdfReader ...
+
+## 6. Production serving
+
+Problem: built-in Flask server isn’t hardened.
+Fix: run behind Gunicorn/uvicorn with timeouts and multiple workers; terminate TLS upstream; add WAF if public.
+
+gunicorn -w 4 -b 0.0.0.0:5000 'app:app' --timeout 60
+Why: better isolation, concurrency, and resource controls.
 
 
 <h2>Acknowledgements</h2>
@@ -94,4 +142,6 @@ This project makes use of several open-source tools and APIs:
   <li><strong>Flask</strong>  for the lightweight web server and API endpoints.</li>
   <li><strong>Docker</strong>  for containerization and deployment.</li>
 </ul>
+
+
 
